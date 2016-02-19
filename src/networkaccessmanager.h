@@ -31,15 +31,14 @@
 #ifndef NETWORKACCESSMANAGER_H
 #define NETWORKACCESSMANAGER_H
 
-#include <QAuthenticator>
-#include <QHash>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-#include <QSet>
 #include <QSslConfiguration>
 #include <QTimer>
+#include <QStringList>
 
 class Config;
+class QAuthenticator;
 class QNetworkDiskCache;
 class QSslConfiguration;
 
@@ -48,8 +47,8 @@ class TimeoutTimer : public QTimer
     Q_OBJECT
 
 public:
-    TimeoutTimer(QObject *parent = 0);
-    QNetworkReply *reply;
+    TimeoutTimer(QObject* parent = 0);
+    QNetworkReply* reply;
     QVariantMap data;
 };
 
@@ -72,26 +71,28 @@ class NoFileAccessReply : public QNetworkReply
     Q_OBJECT
 
 public:
-    NoFileAccessReply(QObject *parent, const QNetworkRequest &req, const QNetworkAccessManager::Operation op);
+    NoFileAccessReply(QObject* parent, const QNetworkRequest& req, const QNetworkAccessManager::Operation op);
     ~NoFileAccessReply();
     void abort() {}
 protected:
-    qint64 readData(char *, qint64) { return -1; }
+    qint64 readData(char*, qint64) { return -1; }
 };
 
 class NetworkAccessManager : public QNetworkAccessManager
 {
     Q_OBJECT
 public:
-    NetworkAccessManager(QObject *parent, const Config *config);
-    void setUserName(const QString &userName);
-    void setPassword(const QString &password);
+    NetworkAccessManager(QObject* parent, const Config* config);
+    void setUserName(const QString& userName);
+    void setPassword(const QString& password);
     void setMaxAuthAttempts(int maxAttempts);
     void setResourceTimeout(int resourceTimeout);
-    void setCustomHeaders(const QVariantMap &headers);
+    void setCustomHeaders(const QVariantMap& headers);
     QVariantMap customHeaders() const;
+    QStringList captureContent() const;
+    void setCaptureContent(const QStringList& patterns);
 
-    void setCookieJar(QNetworkCookieJar *cookieJar);
+    void setCookieJar(QNetworkCookieJar* cookieJar);
 
 protected:
     bool m_ignoreSslErrors;
@@ -101,24 +102,27 @@ protected:
     int m_resourceTimeout;
     QString m_userName;
     QString m_password;
-    QNetworkReply *createRequest(Operation op, const QNetworkRequest & req, QIODevice * outgoingData = 0);
-    void handleFinished(QNetworkReply *reply, const QVariant &status, const QVariant &statusText);
+    QNetworkReply* createRequest(Operation op, const QNetworkRequest& req, QIODevice* outgoingData = 0);
+    void handleFinished(QNetworkReply* reply, const QVariant& status, const QVariant& statusText);
 
 signals:
-    void resourceRequested(const QVariant& data, QObject *);
+    void resourceRequested(const QVariant& data, QObject*);
     void resourceReceived(const QVariant& data);
     void resourceError(const QVariant& data);
     void resourceTimeout(const QVariant& data);
 
 private slots:
     void handleStarted();
-    void handleFinished(QNetworkReply *reply);
-    void provideAuthentication(QNetworkReply *reply, QAuthenticator *authenticator);
-    void handleSslErrors(const QList<QSslError> &errors);
+    void handleFinished(QNetworkReply* reply);
+    void provideAuthentication(QNetworkReply* reply, QAuthenticator* authenticator);
+    void handleSslErrors(const QList<QSslError>& errors);
     void handleNetworkError();
     void handleTimeout();
 
 private:
+    void prepareSslConfiguration(const Config* config);
+    QVariantList getHeadersFromReply(const QNetworkReply* reply);
+
     QHash<QNetworkReply*, int> m_ids;
     QSet<QNetworkReply*> m_started;
     int m_idCounter;
